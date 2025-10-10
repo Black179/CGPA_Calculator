@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: cgpa-calc-backend
+    env: node
+    buildCommand: npm install --production
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        value: mongodb+srv://babutmuthumari_db_user:Blackpanda79@cluster0.weaiuxh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+      - key: JWT_SECRET
+        value: your-super-secret-jwt-key-change-this-in-production
+      - key: FRONTEND_URL
+        value: https://cgpa-calculator-aroj.vercel.app
