@@ -148,6 +148,8 @@ export const AuthProvider = ({ children }) => {
         }
       } else if (error.request) {
         errorMessage = 'Network error. Please check your connection.';
+      } else {
+        errorMessage = error.message || 'Registration failed. Please try again.';
       }
 
       return {
