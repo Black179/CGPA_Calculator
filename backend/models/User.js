@@ -60,9 +60,10 @@ const userSchema = new mongoose.Schema({
       type: Number
     }]
   }],
-  batch: {
+  role: {
     type: String,
-    default: '2024-2028'
+    enum: ['user', 'admin'],
+    default: 'user'
   },
   createdAt: {
     type: Date,
