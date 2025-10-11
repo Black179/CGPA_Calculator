@@ -12,6 +12,6 @@ services:
       - key: MONGODB_URI
         value: mongodb+srv://babutmuthumari_db_user:Blackpanda79@cluster0.weaiuxh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
       - key: JWT_SECRET
-        value: 090d241d5149530d3c702a9cbb291f54ca40d49a2e0a650c9237e5f2567df79db197cdab31f95adac94b3bfa41661300835a62ebda8908dd4e8f1f3dd117a03f
+        value: 95db73f0cd88343fd7b110d9b1d73886f19f8391fbda6cfbb58c47901833f182
       - key: FRONTEND_URL
         value: https://cgpa-calculator-aroj.vercel.app
