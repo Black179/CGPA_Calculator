@@ -30,8 +30,9 @@ app.use(cors({
 
     const allowedOrigins = [
       'https://cgpa-calculator-aroj.vercel.app',
-      'https://cgpa-calculator-aroj-myenk3ojf-babus-projects-6607f12a.vercel.app',
+      'https://cgpa-calculator-aroj-git-main-babus-projects-6607f12a.vercel.app',
       'https://cgpa-calculator-aroj-21lssqi6w-babus-projects-6607f12a.vercel.app',
+      'https://cgpa-calculator-aroj-dhgt57faj-babus-projects-6607f12a.vercel.app',
       'http://localhost:3000',
       'http://localhost:3001',
       'http://localhost:3002',
