@@ -33,6 +33,7 @@ app.use(cors({
       'https://cgpa-calculator-aroj-git-main-babus-projects-6607f12a.vercel.app',
       'https://cgpa-calculator-aroj-21lssqi6w-babus-projects-6607f12a.vercel.app',
       'https://cgpa-calculator-aroj-dhgt57faj-babus-projects-6607f12a.vercel.app',
+      'https://cgpa-calculator-aroj-iootewclr-babus-projects-6607f12a.vercel.app',
       'http://localhost:3000',
       'http://localhost:3001',
       'http://localhost:3002',
