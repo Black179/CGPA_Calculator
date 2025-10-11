@@ -34,6 +34,7 @@ app.use(cors({
       'https://cgpa-calculator-aroj-21lssqi6w-babus-projects-6607f12a.vercel.app',
       'https://cgpa-calculator-aroj-dhgt57faj-babus-projects-6607f12a.vercel.app',
       'https://cgpa-calculator-aroj-iootewclr-babus-projects-6607f12a.vercel.app',
+      'https://cgpa-calculator-aroj-cad6k4n36-babus-projects-6607f12a.vercel.app',
       'http://localhost:3000',
       'http://localhost:3001',
       'http://localhost:3002',
@@ -41,6 +42,12 @@ app.use(cors({
       'http://127.0.0.1:3001',
       'http://127.0.0.1:3002'
     ];
+
+    // Check for Vercel deployment URLs with pattern matching
+    const vercelPattern = /^https:\/\/cgpa-calculator-aroj-[a-z0-9]+-babus-projects-6607f12a\.vercel\.app$/;
+    if (vercelPattern.test(origin)) {
+      return callback(null, true);
+    }
 
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
