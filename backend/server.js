@@ -12,6 +12,9 @@ const adminRoutes = require('./routes/admin');
 
 const app = express();
 
+// Trust proxy for production deployment
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 

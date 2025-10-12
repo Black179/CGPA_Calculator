@@ -3,7 +3,8 @@ const User = require('../models/User');
 const admin = require('../config/firebase');
 
 const generateToken = (userId) => {
-  return jwt.sign({ userId }, process.env.JWT_SECRET, {
+  const secret = process.env.JWT_SECRET || 'fallback-secret-key-change-in-production';
+  return jwt.sign({ userId }, secret, {
     expiresIn: '7d'
   });
 };
@@ -128,7 +129,7 @@ const verifyToken = async (req, res) => {
       return res.status(401).json({ error: 'Token required' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key-change-in-production');
     const user = await User.findById(decoded.userId).select('-password');
 
     if (!user) {
