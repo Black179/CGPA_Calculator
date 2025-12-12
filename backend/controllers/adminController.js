@@ -1,6 +1,26 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+// Helper function to calculate grade points
+const calculateGradePoint = (grade) => {
+  const gradeMap = {
+    'S': 10,
+    'A+': 9,
+    'A': 8.5,
+    'B+': 8,
+    'B': 7.5,
+    'C+': 7,
+    'C': 6.5,
+    'D+': 6,
+    'D': 5.5,
+    'E': 5,
+    'F': 0,
+    'I': 0,
+    'W': 0
+  };
+  return gradeMap[grade] || 0;
+};
+
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, {
     expiresIn: '7d'
@@ -67,12 +87,41 @@ const getAllUsers = async (req, res) => {
   try {
     const users = await User.find({ role: 'user' })
       .select('-password')
-      .sort({ createdAt: -1 });
+      .populate('semesters')
+      .sort({ registerNumber: 1 });
+
+    // Calculate CGPA for each student
+    const usersWithCGPA = users.map(user => {
+      let totalCredits = 0;
+      let totalGradePoints = 0;
+      
+      if (user.semesters && user.semesters.length > 0) {
+        user.semesters.forEach(semester => {
+          if (semester.subjects && semester.subjects.length > 0) {
+            semester.subjects.forEach(subject => {
+              if (subject.grade && subject.credits) {
+                const gradePoint = calculateGradePoint(subject.grade);
+                totalGradePoints += gradePoint * subject.credits;
+                totalCredits += subject.credits;
+              }
+            });
+          }
+        });
+      }
+
+      const cgpa = totalCredits > 0 ? (totalGradePoints / totalCredits).toFixed(2) : 'N/A';
+      
+      return {
+        ...user.toObject(),
+        cgpa,
+        totalCredits
+      };
+    });
 
     res.json({
       success: true,
-      count: users.length,
-      users
+      count: usersWithCGPA.length,
+      users: usersWithCGPA
     });
 
   } catch (error) {

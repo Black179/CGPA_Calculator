@@ -2,11 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { adminAPI } from '../services/api';
 
+// Sample departments and batches for filter dropdowns
+const departments = [
+  'CSE', 'IT', 'ECE', 'EEE', 'MECH', 'CIVIL', 'AIDS', 'AIML', 'CSBS', 'CSD'
+];
+
+const batches = [
+  '2020', '2021', '2022', '2023', '2024'
+];
+
 const AdminDashboard = ({ onLogout }) => {
   const [users, setUsers] = useState([]);
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    avgCGPA: 0,
+    topDepartment: { name: 'N/A', count: 0 },
+    departments: [],
+    batches: []
+  });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDepartment, setSelectedDepartment] = useState('');
+  const [selectedBatch, setSelectedBatch] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
@@ -53,22 +70,77 @@ const AdminDashboard = ({ onLogout }) => {
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.registerNumber.includes(searchTerm)
-  );
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = 
+      user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.registerNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesDept = !selectedDepartment || user.department === selectedDepartment;
+    const matchesBatch = !selectedBatch || user.batch === selectedBatch;
+    
+    return matchesSearch && matchesDept && matchesBatch;
+  });
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading admin dashboard...</p>
+          <p className="text-gray-600">Loading student data...</p>
         </div>
       </div>
     );
   }
+
+  // Function to render user rows
+  const renderUserRow = (user) => (
+    <tr key={user._id} className="hover:bg-gray-50">
+      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+        {user.registerNumber}
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="text-sm text-gray-900">{user.username}</div>
+        <div className="text-sm text-gray-500">{user.email}</div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+          {user.department || 'N/A'}
+        </span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+        {user.batch || 'N/A'}
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+          user.cgpa >= 8 ? 'bg-green-100 text-green-800' : 
+          user.cgpa >= 6.5 ? 'bg-blue-100 text-blue-800' :
+          'bg-yellow-100 text-yellow-800'
+        }`}>
+          {user.cgpa || 'N/A'}
+        </span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+        {user.totalCredits || 0}
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setSelectedUser(user)}
+            className="text-indigo-600 hover:text-indigo-900"
+          >
+            View
+          </button>
+          <button
+            onClick={() => handleDeleteUser(user._id)}
+            className="text-red-600 hover:text-red-900"
+          >
+            Delete
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -76,10 +148,10 @@ const AdminDashboard = ({ onLogout }) => {
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Student Management Dashboard</h1>
             <button
               onClick={onLogout}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors"
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
             >
               Logout
             </button>
@@ -90,21 +162,39 @@ const AdminDashboard = ({ onLogout }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         {stats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
               className="bg-white rounded-lg shadow p-6"
             >
               <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
-                    <span className="text-white font-bold">👥</span>
-                  </div>
+                <div className="flex-shrink-0 bg-green-100 p-3 rounded-full">
+                  <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Total Users</p>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.totalUsers}</p>
+                <div className="ml-5 w-0 flex-1">
+                  <dt className="text-sm font-medium text-gray-500 truncate">
+                    Total Students
+                  </dt>
+                  <dd className="flex items-baseline">
+                    <div className="text-2xl font-semibold text-gray-900">
+                      {stats.totalUsers}
+                    </div>
+                    {stats.newUsersThisMonth > 0 && (
+                      <span className="ml-2 flex items-baseline text-sm font-semibold text-green-600">
+                        <svg className="self-center flex-shrink-0 h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                        <span className="sr-only">
+                          Increased by
+                        </span>
+                        {stats.newUsersThisMonth}
+                      </span>
+                    )}
+                  </dd>
                 </div>
               </div>
             </motion.div>
@@ -121,9 +211,15 @@ const AdminDashboard = ({ onLogout }) => {
                     <span className="text-white font-bold">🆕</span>
                   </div>
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Recent Users (30 days)</p>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.recentUsers}</p>
+                <div className="ml-5 w-0 flex-1">
+                  <dt className="text-sm font-medium text-gray-500 truncate">
+                    Average CGPA
+                  </dt>
+                  <dd className="flex items-baseline">
+                    <div className="text-2xl font-semibold text-gray-900">
+                      {stats.avgCGPA ? stats.avgCGPA.toFixed(2) : 'N/A'}
+                    </div>
+                  </dd>
                 </div>
               </div>
             </motion.div>
@@ -140,9 +236,20 @@ const AdminDashboard = ({ onLogout }) => {
                     <span className="text-white font-bold">📊</span>
                   </div>
                 </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-500">Active Batches</p>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.usersByBatch?.length || 0}</p>
+                <div className="ml-5 w-0 flex-1">
+                  <dt className="text-sm font-medium text-gray-500 truncate">
+                    Top Department
+                  </dt>
+                  <dd className="flex items-baseline">
+                    <div className="text-2xl font-semibold text-gray-900">
+                      {stats.topDepartment?.name || 'N/A'}
+                    </div>
+                    {stats.topDepartment?.count && (
+                      <span className="ml-2 text-sm text-gray-500">
+                        ({stats.topDepartment.count} students)
+                      </span>
+                    )}
+                  </dd>
                 </div>
               </div>
             </motion.div>
@@ -157,103 +264,55 @@ const AdminDashboard = ({ onLogout }) => {
         >
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex justify-between items-center">
-              <h2 className="text-lg font-semibold text-gray-900">All Users</h2>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search users..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
-                  <span className="text-gray-400">🔍</span>
-                </div>
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                Student Records
+              </h3>
+              <div className="text-sm text-gray-500">
+                Showing {filteredUsers.length} of {users.length} students
               </div>
             </div>
           </div>
-
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Register No.
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Register Number
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Student Details
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Department
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Batch
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    CGPA Records
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    CGPA
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Credits
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+                  <th scope="col" className="relative px-6 py-3">
+                    <span className="sr-only">Actions</span>
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.map((user) => (
-                  <tr key={user._id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{user.username}</div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {user.registerNumber}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {user.batch}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {user.semesterData?.length || 0} semesters
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <select
-                        value={user.role}
-                        onChange={(e) => handleUpdateRole(user._id, e.target.value)}
-                        className={`text-sm rounded-full px-3 py-1 font-medium ${
-                          user.role === 'admin'
-                            ? 'bg-purple-100 text-purple-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => setSelectedUser(user)}
-                        className="text-blue-600 hover:text-blue-900 mr-3"
-                      >
-                        View
-                      </button>
-                      <button
-                        onClick={() => handleDeleteUser(user._id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Delete
-                      </button>
+                {filteredUsers.length > 0 ? (
+                  filteredUsers.map(renderUserRow)
+                ) : (
+                  <tr>
+                    <td colSpan="7" className="px-6 py-4 text-center text-sm text-gray-500">
+                      No students found matching your search criteria
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
 
-          {filteredUsers.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500">No users found matching your search.</p>
-            </div>
-          )}
         </motion.div>
 
         {/* User Details Modal */}
