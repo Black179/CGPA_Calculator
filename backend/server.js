@@ -25,46 +25,66 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// CORS configuration
-const corsOptions = {
-  origin: function (origin, callback) {
-    // In development, allow all origins
-    if (process.env.NODE_ENV !== 'production') {
-      return callback(null, true);
-    }
-
+// Enable CORS for all routes with detailed logging
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} from origin: ${origin}`);
+  
+  // In development, allow all origins
+  if (process.env.NODE_ENV !== 'production') {
+    res.header('Access-Control-Allow-Origin', '*');
+    console.log('Allowing all origins in development');
+  } else {
     // In production, only allow specific origins
     const allowedOrigins = [
-      'https://cgpa-calculator-aroj.vercel.app',
-      'https://cgpa-calculator-aroj-git-main-babus-projects-6607f12a.vercel.app',
-      /^\.*vercel\.app$/,  // Allow all Vercel preview deployments
-      /^https?:\/\/localhost(:[0-9]+)?$/,  // Allow localhost with any port
-      /^https?:\/\/127\.0\.0\.1(:[0-9]+)?$/  // Allow 127.0.0.1 with any port
+      /^https?:\/\/cgpa-calculator-aroj(-[a-z0-9]+)?\.vercel\.app$/,  // Main app
+      /^https?:\/\/cgpa-calculator-backend(-[a-z0-9]+)?\.vercel\.app$/,  // Backend
+      /^https?:\/\/localhost(:[0-9]+)?$/,  // Localhost with any port
+      /^https?:\/\/127\.0\.0\.1(:[0-9]+)?$/  // 127.0.0.1 with any port
     ];
 
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-
-    // Check if the origin matches any of the allowed patterns
-    for (const pattern of allowedOrigins) {
-      if (typeof pattern === 'string') {
-        if (pattern === origin) {
-          return callback(null, true);
+    // Check if the origin is allowed
+    if (origin) {
+      let isAllowed = false;
+      for (const pattern of allowedOrigins) {
+        if (typeof pattern === 'string' && pattern === origin) {
+          isAllowed = true;
+          break;
+        } else if (pattern instanceof RegExp && pattern.test(origin)) {
+          isAllowed = true;
+          break;
         }
-      } else if (pattern.test(origin)) {
-        return callback(null, true);
       }
-    }
 
-    console.log('CORS blocked for origin:', origin);
-    return callback(new Error('Not allowed by CORS'));
-  },
+      if (isAllowed) {
+        res.header('Access-Control-Allow-Origin', origin);
+        console.log(`Origin ${origin} is allowed`);
+      } else {
+        console.log(`Origin ${origin} is not allowed`);
+      }
+    } else {
+      console.log('No origin header, allowing request');
+    }
+  }
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    console.log('Handling preflight request');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Credentials', true);
+    return res.status(200).end();
+  }
+
+  next();
+});
+
+// Regular CORS for non-OPTIONS requests
+app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-};
-
-app.use(cors(corsOptions));
+}));
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
