@@ -1,5 +1,8 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+exports.getAllUsers = async (req, res) => { /* ... */ };
+exports.getStats = async (req, res) => { /* ... */ };
+// ... other exports
 
 // Helper function to calculate grade points
 const calculateGradePoint = (grade) => {

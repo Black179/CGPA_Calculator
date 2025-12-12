@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { adminLogin, getAllUsers, getUserStats, deleteUser, updateUserRole } = require('../controllers/adminController');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const adminController = require('../controllers/adminController');
 
 // Admin login (no authentication required for login)
 router.post('/login', adminLogin);
