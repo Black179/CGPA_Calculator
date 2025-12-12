@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: 'https://cgpa-calculator-t42f.onrender.com', // Production backend URL
+  baseURL: 'https://cgpa-calculator-backend.vercel.app', // Production backend URL
   timeout: 30000, // Increased timeout to 30 seconds
   withCredentials: true, // Important: Send cookies with requests
   headers: {
