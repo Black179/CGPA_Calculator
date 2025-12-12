@@ -91,7 +91,100 @@ const getAllUsers = async (req, res) => {
     res.set('Expires', '0');
 
     const users = await User.aggregate([
-      // ... rest of your aggregation pipeline
+      { $match: { role: 'user' } },
+      {
+        $lookup: {
+          from: 'semesters',
+          localField: '_id',
+          foreignField: 'user',
+          as: 'semesters'
+        }
+      },
+      { $unwind: { path: '$semesters', preserveNullAndEmptyArrays: true } },
+      {
+        $addFields: {
+          'semesters.weightedPoints': {
+            $reduce: {
+              input: { $objectToArray: '$semesters.subjects' },
+              initialValue: 0,
+              in: {
+                $add: [
+                  '$$value',
+                  {
+                    $multiply: [
+                      { $ifNull: ['$$this.v.credits', 0] },
+                      { $ifNull: [calculateGradePoint('$$this.v.grade'), 0] }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          'semesters.totalCredits': {
+            $reduce: {
+              input: { $objectToArray: '$semesters.subjects' },
+              initialValue: 0,
+              in: { $add: ['$$value', { $ifNull: ['$$this.v.credits', 0] }] }
+            }
+          }
+        }
+      },
+      {
+        $addFields: {
+          'semesters.gpa': {
+            $cond: {
+              if: { $gt: ['$semesters.totalCredits', 0] },
+              then: {
+                $divide: [
+                  '$semesters.weightedPoints',
+                  '$semesters.totalCredits'
+                ]
+              },
+              else: 0
+            }
+          }
+        }
+      },
+      {
+        $group: {
+          _id: '$_id',
+          registerNumber: { $first: '$registerNumber' },
+          username: { $first: '$username' },
+          email: { $first: '$email' },
+          batch: { $first: '$batch' },
+          department: { $first: '$department' },
+          semesters: { $push: '$semesters' },
+          totalGradePoints: { $sum: '$semesters.weightedPoints' },
+          totalCredits: { $sum: '$semesters.totalCredits' }
+        }
+      },
+      {
+        $addFields: {
+          cgpa: {
+            $cond: {
+              if: { $gt: ['$totalCredits', 0] },
+              then: { $divide: ['$totalGradePoints', '$totalCredits'] },
+              else: 0
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          registerNumber: 1,
+          username: 1,
+          email: 1,
+          batch: 1,
+          department: 1,
+          semesters: 1,
+          cgpa: { $round: ['$cgpa', 2] },
+          totalCredits: 1,
+          backlogs: 0, // You might want to calculate this based on failed subjects
+          arrears: 0   // You might want to calculate this based on pending subjects
+        }
+      },
+      { $sort: { registerNumber: 1 } }
     ]);
 
     res.json({

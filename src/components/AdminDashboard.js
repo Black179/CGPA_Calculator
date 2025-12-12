@@ -34,16 +34,30 @@ const AdminDashboard = ({ onLogout }) => {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
+      console.log('Fetching users and stats...');
       const [usersResponse, statsResponse] = await Promise.all([
         adminAPI.getAllUsers(),
         adminAPI.getStats()
       ]);
 
-      console.log('Fetched users data:', usersResponse.data.users); // Debug log
-      setUsers(usersResponse.data.users);
-      setStats(statsResponse.data.stats);
+      console.log('Users response:', usersResponse);
+      console.log('Stats response:', statsResponse);
+
+      if (usersResponse.data && usersResponse.data.users) {
+        console.log('Number of users received:', usersResponse.data.users.length);
+        if (usersResponse.data.users.length > 0) {
+          console.log('First user sample:', usersResponse.data.users[0]);
+        }
+      }
+
+      setUsers(usersResponse.data.users || []);
+      setStats(statsResponse.data.stats || {});
     } catch (error) {
       console.error('Error loading dashboard data:', error);
+      if (error.response) {
+        console.error('Error response data:', error.response.data);
+        console.error('Error status:', error.response.status);
+      }
     } finally {
       setLoading(false);
     }
