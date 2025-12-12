@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { adminAPI } from '../services/api';
+import { exportStudentsToExcel } from '../utils/excelExport';
 
 // Sample departments and batches for filter dropdowns
 const departments = [
@@ -137,6 +138,15 @@ const AdminDashboard = ({ onLogout }) => {
     </tr>
   );
 
+  const handleExport = () => {
+    try {
+      exportStudentsToExcel(users, 'Student_Results.xlsx');
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export data. Please try again.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -144,12 +154,23 @@ const AdminDashboard = ({ onLogout }) => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <h1 className="text-2xl font-bold text-gray-900">Student Management Dashboard</h1>
-            <button
-              onClick={onLogout}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
-            >
-              Logout
-            </button>
+            <div className="flex space-x-4">
+              <button
+                onClick={handleExport}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors text-sm flex items-center"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Export to Excel
+              </button>
+              <button
+                onClick={onLogout}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
       </div>

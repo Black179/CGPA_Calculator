@@ -4,6 +4,14 @@ import axios from 'axios';
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000',
   timeout: 10000,
+  headers: {
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
+  },
+  params: {
+    _t: Date.now() // Add timestamp to prevent caching
+  }
 });
 
 // Add token to requests if available

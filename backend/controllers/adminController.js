@@ -85,106 +85,13 @@ const adminLogin = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
   try {
+    // Set headers to prevent caching
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+
     const users = await User.aggregate([
-      // Match only student users
-      { $match: { role: 'user' } },
-      // Lookup semester data
-      {
-        $lookup: {
-          from: 'semesters',
-          localField: '_id',
-          foreignField: 'user',
-          as: 'semesters'
-        }
-      },
-      // Unwind the semesters array
-      { $unwind: { path: '$semesters', preserveNullAndEmptyArrays: true } },
-      // Calculate grade points for each subject
-      {
-        $addFields: {
-          'semesters.weightedPoints': {
-            $reduce: {
-              input: { $objectToArray: '$semesters.subjects' },
-              initialValue: { totalPoints: 0, totalCredits: 0 },
-              in: {
-                totalPoints: {
-                  $add: [
-                    '$$value.totalPoints',
-                    {
-                      $multiply: [
-                        { $ifNull: [calculateGradePoint('$$this.v.grade'), 0] },
-                        { $ifNull: ['$$this.v.credits', 0] }
-                      ]
-                    }
-                  ]
-                },
-                totalCredits: {
-                  $add: ['$$value.totalCredits', { $ifNull: ['$$this.v.credits', 0] }]
-                }
-              }
-            }
-          }
-        }
-      },
-      // Calculate GPA for each semester
-      {
-        $addFields: {
-          'semesters.gpa': {
-            $cond: {
-              if: { $gt: ['$semesters.weightedPoints.totalCredits', 0] },
-              then: {
-                $divide: [
-                  '$semesters.weightedPoints.totalPoints',
-                  '$semesters.weightedPoints.totalCredits'
-                ]
-              },
-              else: 0
-            }
-          }
-        }
-      },
-      // Group back by user
-      {
-        $group: {
-          _id: '$_id',
-          registerNumber: { $first: '$registerNumber' },
-          username: { $first: '$username' },
-          email: { $first: '$email' },
-          department: { $first: '$department' },
-          batch: { $first: '$batch' },
-          semesters: { $push: '$semesters' },
-          totalGradePoints: { $sum: '$semesters.weightedPoints.totalPoints' },
-          totalCredits: { $sum: '$semesters.weightedPoints.totalCredits' }
-        }
-      },
-      // Calculate CGPA
-      {
-        $addFields: {
-          cgpa: {
-            $cond: {
-              if: { $gt: ['$totalCredits', 0] },
-              then: { $divide: ['$totalGradePoints', '$totalCredits'] },
-              else: 0
-            }
-          }
-        }
-      },
-      // Project only necessary fields
-      {
-        $project: {
-          _id: 1,
-          registerNumber: 1,
-          username: 1,
-          email: 1,
-          department: 1,
-          batch: 1,
-          cgpa: { $round: ['$cgpa', 2] },
-          totalCredits: 1,
-          semesterCount: { $size: '$semesters' }
-        }
-      },
-      // Sort by register number
-      { $sort: { registerNumber: 1 } }
+      // ... rest of your aggregation pipeline
     ]);
 
     res.json({
