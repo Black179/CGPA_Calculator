@@ -8,6 +8,8 @@ import UserDashboard from './components/UserDashboard';
 import BatchSelector from './components/BatchSelector';
 import SemesterSelector from './components/SemesterSelector';
 import Results from './components/Results';
+import AdminLogin from './components/AdminLogin';
+import AdminDashboard from './components/AdminDashboard';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { calculateGPA, calculateCGPA } from './utils/gradeCalculator';
 
@@ -78,12 +80,16 @@ const getGradePoint = (grade) => {
 function AppContent() {
   const {
     isAuthenticated,
+    isAdminAuthenticated,
     loading,
     user,
+    admin,
     semesterData,
     cgpaHistory,
     saveSemesterData,
-    logout
+    logout,
+    adminLogout,
+    adminLogin
   } = useAuth();
 
   const [selectedSemesters, setSelectedSemesters] = useState({});
@@ -94,6 +100,7 @@ function AppContent() {
   const [selectedBatch, setSelectedBatch] = useState('2024-2028');
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
 
   // Load user data into current semester data when authenticated
   useEffect(() => {
@@ -181,6 +188,10 @@ function AppContent() {
     setSelectedSemesters({});
   };
 
+  const handleAdminLogout = () => {
+    adminLogout();
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
@@ -189,7 +200,8 @@ function AppContent() {
     );
   }
 
-  if (!isAuthenticated) {
+  // Show combined login interface if neither user nor admin is authenticated
+  if (!isAuthenticated && !isAdminAuthenticated) {
     return (
       <div className={`min-h-screen transition-all duration-500 ${isDarkMode
         ? 'bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900'
@@ -202,98 +214,143 @@ function AppContent() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="max-w-md mx-auto"
+            className="max-w-lg mx-auto"
           >
             <div className={`rounded-xl shadow-2xl overflow-hidden ${isDarkMode
               ? 'bg-white'
               : 'bg-gradient-to-br from-violet-200 via-purple-200 to-sky-200'}`}>
               <div className={`px-8 py-6 ${isDarkMode ? '' : 'text-gray-900'}`}>
                 <div className="text-center mb-8">
-                  <h1 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-gray-900' : 'text-gray-900'}`}>Welcome to CGPA Calculator</h1>
+                  <h1 className={`text-4xl font-bold mb-2 ${isDarkMode ? 'text-gray-900' : 'text-gray-900'}`}>Welcome to CGPA Calculator</h1>
                   <p className={`${isDarkMode ? 'text-gray-600' : 'text-gray-700'}`}>
-                    {(() => {
-                      const storedCGPA = getStoredCGPA();
-                      const hasToken = localStorage.getItem('token');
-
-                      if (storedCGPA) {
-                        return <>Your last calculated CGPA: <span className="font-semibold text-purple-600">{storedCGPA}</span><br />Sign in to continue tracking your academic progress</>;
-                      } else if (hasToken) {
-                        return 'Welcome back! Sign in to access your saved semester data and continue calculating your CGPA';
-                      } else {
-                        return 'Start your academic journey! Sign in to save your progress and track your semester grades';
-                      }
-                    })()}
+                    Choose your login type to continue
                   </p>
                 </div>
 
-                {/* Tab Navigation */}
-                <div className={`flex mb-6 rounded-lg p-1 ${isDarkMode ? 'bg-gray-100' : 'bg-white/80 backdrop-blur-sm'}`}>
+                {/* Login Type Selection */}
+                <div className={`grid grid-cols-2 gap-4 mb-8 ${isDarkMode ? 'bg-gray-100' : 'bg-white/80 backdrop-blur-sm'} rounded-lg p-2`}>
                   <button
                     onClick={() => {
                       setShowLogin(true);
                       setShowRegister(false);
+                      setShowAdminLogin(false);
                     }}
-                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
-                      showLogin
+                    className={`py-3 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+                      showLogin || (!showAdminLogin && !showRegister)
                         ? `${isDarkMode ? 'bg-white text-blue-600' : 'bg-white/90 text-purple-600 backdrop-blur-sm'} shadow-sm`
                         : `${isDarkMode ? 'text-gray-600 hover:text-gray-900' : 'text-gray-600 hover:text-gray-800'}`
                     }`}
                   >
-                    Sign In
+                    Student Login
                   </button>
                   <button
                     onClick={() => {
-                      setShowRegister(true);
+                      setShowAdminLogin(true);
                       setShowLogin(false);
+                      setShowRegister(false);
                     }}
-                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
-                      showRegister
+                    className={`py-3 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+                      showAdminLogin
                         ? `${isDarkMode ? 'bg-white text-green-600' : 'bg-white/90 text-purple-600 backdrop-blur-sm'} shadow-sm`
                         : `${isDarkMode ? 'text-gray-600 hover:text-gray-900' : 'text-gray-600 hover:text-gray-800'}`
                     }`}
                   >
-                    Sign Up
+                    Admin Login
                   </button>
                 </div>
 
-                {/* Authentication Forms */}
-                <AnimatePresence mode="wait">
-                  {showLogin && (
-                    <motion.div
-                      key="login"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ duration: 0.3 }}
+                {/* Student Authentication Section */}
+                <div className="mb-6" onClick={(e) => e.stopPropagation()}>
+                  <div className={`flex mb-4 rounded-lg p-1 ${isDarkMode ? 'bg-gray-100' : 'bg-white/80 backdrop-blur-sm'}`}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowLogin(true);
+                        setShowRegister(false);
+                        setShowAdminLogin(false);
+                      }}
+                      className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+                        showLogin && !showRegister
+                          ? `${isDarkMode ? 'bg-white text-blue-600' : 'bg-white/90 text-purple-600 backdrop-blur-sm'} shadow-sm`
+                          : `${isDarkMode ? 'text-gray-600 hover:text-gray-900' : 'text-gray-600 hover:text-gray-800'}`
+                      }`}
                     >
-                      <Login
-                        onClose={() => {}}
-                        onSwitchToRegister={() => {
-                          setShowLogin(false);
-                          setShowRegister(true);
-                        }}
-                      />
-                    </motion.div>
-                  )}
+                      Sign In
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowRegister(true);
+                        setShowLogin(false);
+                        setShowAdminLogin(false);
+                      }}
+                      className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+                        showRegister
+                          ? `${isDarkMode ? 'bg-white text-green-600' : 'bg-white/90 text-purple-600 backdrop-blur-sm'} shadow-sm`
+                          : `${isDarkMode ? 'text-gray-600 hover:text-gray-900' : 'text-gray-600 hover:text-gray-800'}`
+                      }`}
+                    >
+                      Sign Up
+                    </button>
+                  </div>
 
-                  {showRegister && (
-                    <motion.div
-                      key="register"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <Register
-                        onClose={() => {}}
-                        onSwitchToLogin={() => {
-                          setShowRegister(false);
-                          setShowLogin(true);
-                        }}
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                  <AnimatePresence mode="wait">
+                    {showLogin && (
+                      <motion.div
+                        key="login"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <Login
+                          onClose={() => {}}
+                          onSwitchToRegister={() => {
+                            setShowLogin(false);
+                            setShowRegister(true);
+                          }}
+                        />
+                      </motion.div>
+                    )}
+
+                    {showRegister && (
+                      <motion.div
+                        key="register"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <Register
+                          onClose={() => {}}
+                          onSwitchToLogin={() => {
+                            setShowRegister(false);
+                            setShowLogin(true);
+                          }}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Admin Authentication Section */}
+                {showAdminLogin && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <AdminLogin
+                      onLogin={(adminData) => {
+                        setShowAdminLogin(false);
+                        // Admin is now logged in via context
+                      }}
+                    />
+                  </motion.div>
+                )}
               </div>
             </div>
           </motion.div>
@@ -316,47 +373,56 @@ function AppContent() {
       <Header isDarkMode={isDarkMode} selectedBatch={selectedBatch} />
 
       <main className="container mx-auto px-4 py-8">
-        {/* User Dashboard */}
-        <UserDashboard onLogout={handleLogout} />
+        {/* Admin Dashboard */}
+        {isAdminAuthenticated && (
+          <AdminDashboard onLogout={handleAdminLogout} />
+        )}
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <BatchSelector
-            selectedBatch={selectedBatch}
-            onBatchChange={handleBatchChange}
-            isDarkMode={isDarkMode}
-          />
-        </motion.div>
+        {/* User Dashboard - Only show if not admin */}
+        {!isAdminAuthenticated && (
+          <>
+            <UserDashboard onLogout={handleLogout} />
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.1 }}
-        >
-          <SemesterSelector
-            selectedSemesters={selectedSemesters}
-            semesterData={currentSemesterData}
-            onSemesterToggle={handleSemesterToggle}
-            onSubjectGradeChange={handleSubjectGradeChange}
-            isDarkMode={isDarkMode}
-          />
-        </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+            >
+              <BatchSelector
+                selectedBatch={selectedBatch}
+                onBatchChange={handleBatchChange}
+                isDarkMode={isDarkMode}
+              />
+            </motion.div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-        >
-          <Results
-            gpaResults={gpaResults}
-            cgpaResult={cgpaResult}
-            selectedBatch={selectedBatch}
-            isDarkMode={isDarkMode}
-          />
-        </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.1 }}
+            >
+              <SemesterSelector
+                selectedSemesters={selectedSemesters}
+                semesterData={currentSemesterData}
+                onSemesterToggle={handleSemesterToggle}
+                onSubjectGradeChange={handleSubjectGradeChange}
+                isDarkMode={isDarkMode}
+              />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+            >
+              <Results
+                gpaResults={gpaResults}
+                cgpaResult={cgpaResult}
+                selectedBatch={selectedBatch}
+                isDarkMode={isDarkMode}
+              />
+            </motion.div>
+          </>
+        )}
       </main>
 
       <Footer

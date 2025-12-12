@@ -176,8 +176,12 @@ const Login = ({ onSwitchToRegister }) => {
         <p className="text-sm text-gray-600">
           Don't have an account?{' '}
           <button
-            onClick={onSwitchToRegister}
-            className="text-blue-600 hover:text-blue-700 font-medium"
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              onSwitchToRegister();
+            }}
+            className="text-blue-600 hover:text-blue-700 font-medium focus:outline-none"
           >
             Sign Up
           </button>

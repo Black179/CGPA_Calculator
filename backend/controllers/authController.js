@@ -20,6 +20,21 @@ const register = async (req, res) => {
       });
     }
 
+    // Password validation
+    if (password.length < 6) {
+      return res.status(400).json({
+        error: 'Password must be at least 6 characters long'
+      });
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        error: 'Please enter a valid email address'
+      });
+    }
+
     // Check if user already exists
     const existingUser = await User.findOne({
       $or: [

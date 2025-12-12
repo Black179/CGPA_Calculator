@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
-import { authAPI, userAPI, semesterAPI } from '../services/api';
+import { authAPI, userAPI, semesterAPI, adminAPI } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -14,24 +14,39 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(true);
   const [semesterData, setSemesterData] = useState({});
   const [cgpaHistory, setCgpaHistory] = useState([]);
   const [token, setToken] = useState(localStorage.getItem('token'));
+  const [adminToken, setAdminToken] = useState(localStorage.getItem('adminToken'));
 
   // Configure axios defaults
   useEffect(() => {
-    if (token) {
+    if (adminToken) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${adminToken}`;
+    } else if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     } else {
       delete axios.defaults.headers.common['Authorization'];
     }
-  }, [token]);
+  }, [token, adminToken]);
 
   // Verify token on app start
   useEffect(() => {
     const initializeAuth = async () => {
-      if (token) {
+      if (adminToken) {
+        try {
+          const adminUser = JSON.parse(localStorage.getItem('adminUser'));
+          setAdmin(adminUser);
+        } catch (error) {
+          console.error('Admin token verification failed:', error);
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminUser');
+          setAdminToken(null);
+          setAdmin(null);
+        }
+      } else if (token) {
         try {
           const response = await authAPI.verifyToken();
           setUser(response.data.user);
@@ -48,7 +63,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     initializeAuth();
-  }, [token]);
+  }, [token, adminToken]);
 
   const loadUserData = async () => {
     try {
@@ -106,6 +121,49 @@ export const AuthProvider = ({ children }) => {
         error: errorMessage
       };
     }
+  };
+
+  const adminLogin = async (email, password) => {
+    try {
+      const response = await adminAPI.login({ email, password });
+      const { token: newAdminToken, admin: adminData } = response.data;
+
+      localStorage.setItem('adminToken', newAdminToken);
+      localStorage.setItem('adminUser', JSON.stringify(adminData));
+      setAdminToken(newAdminToken);
+      setAdmin(adminData);
+
+      return { success: true };
+    } catch (error) {
+      console.error('Admin login error:', error);
+
+      let errorMessage = 'Admin login failed';
+
+      if (error.response) {
+        const status = error.response.status;
+        const backendError = error.response.data?.error;
+
+        if (status === 404) {
+          errorMessage = 'Admin account not found';
+        } else if (status === 401) {
+          errorMessage = 'Invalid admin credentials';
+        } else {
+          errorMessage = backendError || 'Admin login failed';
+        }
+      }
+
+      return {
+        success: false,
+        error: errorMessage
+      };
+    }
+  };
+
+  const adminLogout = () => {
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminUser');
+    setAdminToken(null);
+    setAdmin(null);
   };
 
   const register = async (registerNumber, username, email, password) => {
@@ -202,13 +260,17 @@ export const AuthProvider = ({ children }) => {
 
   const value = {
     user,
+    admin,
     loading,
     isAuthenticated: !!user,
+    isAdminAuthenticated: !!admin,
     semesterData,
     cgpaHistory,
     login,
+    adminLogin,
     register,
     logout,
+    adminLogout,
     updateProfile,
     saveSemesterData
   };

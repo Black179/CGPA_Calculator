@@ -2,15 +2,19 @@ import axios from 'axios';
 
 // Create axios instance with base URL
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'https://cgpa-calculator-t42f.onrender.com',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000',
   timeout: 10000,
 });
 
 // Add token to requests if available
 api.interceptors.request.use(
   (config) => {
+    const adminToken = localStorage.getItem('adminToken');
     const token = localStorage.getItem('token');
-    if (token) {
+
+    if (adminToken) {
+      config.headers.Authorization = `Bearer ${adminToken}`;
+    } else if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -25,17 +29,26 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
+      // Token expired or invalid - remove both admin and regular tokens
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('adminUser');
+      window.location.href = '/';
     }
     return Promise.reject(error);
   }
 );
 
+// Create axios instance without interceptors for auth requests
+const authApi = axios.create({
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000',
+  timeout: 10000,
+});
+
+// API Endpoints
 export const authAPI = {
-  register: (userData) => api.post('/api/auth/register', userData),
-  login: (credentials) => api.post('/api/auth/login', credentials),
+  register: (userData) => authApi.post('/api/auth/register', userData),
+  login: (credentials) => authApi.post('/api/auth/login', credentials),
   verifyToken: () => api.get('/api/auth/verify'),
 };
 
@@ -47,6 +60,14 @@ export const userAPI = {
 export const semesterAPI = {
   saveSemesterData: (data) => api.post('/api/semester/save', data),
   getSemesterData: () => api.get('/api/semester/data'),
+};
+
+export const adminAPI = {
+  login: (credentials) => authApi.post('/api/admin/login', credentials),
+  getAllUsers: () => api.get('/api/admin/users'),
+  getStats: () => api.get('/api/admin/stats'),
+  deleteUser: (userId) => api.delete(`/api/admin/users/${userId}`),
+  updateUserRole: (userId, role) => api.put(`/api/admin/users/${userId}/role`, { role }),
 };
 
 export default api;
