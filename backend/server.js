@@ -37,29 +37,23 @@ const corsOptions = {
     const allowedOrigins = [
       'https://cgpa-calculator-aroj.vercel.app',
       'https://cgpa-calculator-aroj-git-main-babus-projects-6607f12a.vercel.app',
-      'https://cgpa-calculator-aroj-21lssqi6w-babus-projects-6607f12a.vercel.app',
-      'https://cgpa-calculator-aroj-dhgt57faj-babus-projects-6607f12a.vercel.app',
-      'https://cgpa-calculator-aroj-iootewclr-babus-projects-6607f12a.vercel.app',
-      'https://cgpa-calculator-aroj-cad6k4n36-babus-projects-6607f12a.vercel.app',
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:3001',
-      'http://127.0.0.1:3002'
+      /^\.*vercel\.app$/,  // Allow all Vercel preview deployments
+      /^https?:\/\/localhost(:[0-9]+)?$/,  // Allow localhost with any port
+      /^https?:\/\/127\.0\.0\.1(:[0-9]+)?$/  // Allow 127.0.0.1 with any port
     ];
-
-    // Check for Vercel deployment URLs with pattern matching
-    const vercelPattern = /^https:\/\/cgpa-calculator-aroj-[a-z0-9]+-babus-projects-6607f12a\.vercel\.app$/;
-    if (vercelPattern.test(origin)) {
-      return callback(null, true);
-    }
 
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
+    // Check if the origin matches any of the allowed patterns
+    for (const pattern of allowedOrigins) {
+      if (typeof pattern === 'string') {
+        if (pattern === origin) {
+          return callback(null, true);
+        }
+      } else if (pattern.test(origin)) {
+        return callback(null, true);
+      }
     }
 
     console.log('CORS blocked for origin:', origin);
