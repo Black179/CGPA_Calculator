@@ -99,29 +99,21 @@ const AdminDashboard = ({ onLogout }) => {
       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
         {user.registerNumber}
       </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-sm text-gray-900">{user.username}</div>
+      <td className="px-6 py-4">
+        <div className="text-sm font-medium text-gray-900">{user.username}</div>
         <div className="text-sm text-gray-500">{user.email}</div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-          {user.department || 'N/A'}
-        </span>
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
         {user.batch || 'N/A'}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+        <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${
           user.cgpa >= 8 ? 'bg-green-100 text-green-800' : 
           user.cgpa >= 6.5 ? 'bg-blue-100 text-blue-800' :
           'bg-yellow-100 text-yellow-800'
         }`}>
-          {user.cgpa || 'N/A'}
+          {user.cgpa ? Number(user.cgpa).toFixed(2) : 'N/A'}
         </span>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-        {user.totalCredits || 0}
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
         <div className="flex space-x-2">
@@ -283,16 +275,10 @@ const AdminDashboard = ({ onLogout }) => {
                     Student Details
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Department
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Batch
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     CGPA
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Credits
                   </th>
                   <th scope="col" className="relative px-6 py-3">
                     <span className="sr-only">Actions</span>
