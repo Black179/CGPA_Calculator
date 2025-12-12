@@ -85,48 +85,117 @@ const adminLogin = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({ role: 'user' })
-      .select('-password')
-      .populate('semesters')
-      .sort({ registerNumber: 1 });
-
-    // Calculate CGPA for each student
-    const usersWithCGPA = users.map(user => {
-      let totalCredits = 0;
-      let totalGradePoints = 0;
-      
-      if (user.semesters && user.semesters.length > 0) {
-        user.semesters.forEach(semester => {
-          if (semester.subjects && semester.subjects.length > 0) {
-            semester.subjects.forEach(subject => {
-              if (subject.grade && subject.credits) {
-                const gradePoint = calculateGradePoint(subject.grade);
-                totalGradePoints += gradePoint * subject.credits;
-                totalCredits += subject.credits;
+    const users = await User.aggregate([
+      // Match only student users
+      { $match: { role: 'user' } },
+      // Lookup semester data
+      {
+        $lookup: {
+          from: 'semesters',
+          localField: '_id',
+          foreignField: 'user',
+          as: 'semesters'
+        }
+      },
+      // Unwind the semesters array
+      { $unwind: { path: '$semesters', preserveNullAndEmptyArrays: true } },
+      // Calculate grade points for each subject
+      {
+        $addFields: {
+          'semesters.weightedPoints': {
+            $reduce: {
+              input: { $objectToArray: '$semesters.subjects' },
+              initialValue: { totalPoints: 0, totalCredits: 0 },
+              in: {
+                totalPoints: {
+                  $add: [
+                    '$$value.totalPoints',
+                    {
+                      $multiply: [
+                        { $ifNull: [calculateGradePoint('$$this.v.grade'), 0] },
+                        { $ifNull: ['$$this.v.credits', 0] }
+                      ]
+                    }
+                  ]
+                },
+                totalCredits: {
+                  $add: ['$$value.totalCredits', { $ifNull: ['$$this.v.credits', 0] }]
+                }
               }
-            });
+            }
           }
-        });
-      }
-
-      const cgpa = totalCredits > 0 ? (totalGradePoints / totalCredits).toFixed(2) : 'N/A';
-      
-      return {
-        ...user.toObject(),
-        cgpa,
-        totalCredits
-      };
-    });
+        }
+      },
+      // Calculate GPA for each semester
+      {
+        $addFields: {
+          'semesters.gpa': {
+            $cond: {
+              if: { $gt: ['$semesters.weightedPoints.totalCredits', 0] },
+              then: {
+                $divide: [
+                  '$semesters.weightedPoints.totalPoints',
+                  '$semesters.weightedPoints.totalCredits'
+                ]
+              },
+              else: 0
+            }
+          }
+        }
+      },
+      // Group back by user
+      {
+        $group: {
+          _id: '$_id',
+          registerNumber: { $first: '$registerNumber' },
+          username: { $first: '$username' },
+          email: { $first: '$email' },
+          department: { $first: '$department' },
+          batch: { $first: '$batch' },
+          semesters: { $push: '$semesters' },
+          totalGradePoints: { $sum: '$semesters.weightedPoints.totalPoints' },
+          totalCredits: { $sum: '$semesters.weightedPoints.totalCredits' }
+        }
+      },
+      // Calculate CGPA
+      {
+        $addFields: {
+          cgpa: {
+            $cond: {
+              if: { $gt: ['$totalCredits', 0] },
+              then: { $divide: ['$totalGradePoints', '$totalCredits'] },
+              else: 0
+            }
+          }
+        }
+      },
+      // Project only necessary fields
+      {
+        $project: {
+          _id: 1,
+          registerNumber: 1,
+          username: 1,
+          email: 1,
+          department: 1,
+          batch: 1,
+          cgpa: { $round: ['$cgpa', 2] },
+          totalCredits: 1,
+          semesterCount: { $size: '$semesters' }
+        }
+      },
+      // Sort by register number
+      { $sort: { registerNumber: 1 } }
+    ]);
 
     res.json({
       success: true,
-      count: usersWithCGPA.length,
-      users: usersWithCGPA
+      count: users.length,
+      users
     });
-
   } catch (error) {
-    console.error('Get users error:', error);
+    console.error('Error fetching users:', error);
     res.status(500).json({
+      success: false,
       error: 'Failed to fetch users',
       message: error.message
     });
