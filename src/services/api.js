@@ -4,10 +4,12 @@ import axios from 'axios';
 const api = axios.create({
   baseURL: 'https://cgpa-calculator-t42f.onrender.com', // Production backend URL
   timeout: 10000,
+  withCredentials: true, // Important: Send cookies with requests
   headers: {
     'Cache-Control': 'no-cache, no-store, must-revalidate',
     'Pragma': 'no-cache',
-    'Expires': '0'
+    'Expires': '0',
+    'Content-Type': 'application/json'
   },
   params: {
     _t: Date.now() // Add timestamp to prevent caching

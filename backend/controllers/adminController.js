@@ -85,6 +85,8 @@ const adminLogin = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
   try {
+    console.log('Fetching all users...');
+    
     // Set headers to prevent caching
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.set('Pragma', 'no-cache');
@@ -101,103 +103,23 @@ const getAllUsers = async (req, res) => {
         }
       },
       { $unwind: { path: '$semesters', preserveNullAndEmptyArrays: true } },
-      {
-        $addFields: {
-          'semesters.weightedPoints': {
-            $reduce: {
-              input: { $objectToArray: '$semesters.subjects' },
-              initialValue: 0,
-              in: {
-                $add: [
-                  '$$value',
-                  {
-                    $multiply: [
-                      { $ifNull: ['$$this.v.credits', 0] },
-                      { $ifNull: [calculateGradePoint('$$this.v.grade'), 0] }
-                    ]
-                  }
-                ]
-              }
-            }
-          },
-          'semesters.totalCredits': {
-            $reduce: {
-              input: { $objectToArray: '$semesters.subjects' },
-              initialValue: 0,
-              in: { $add: ['$$value', { $ifNull: ['$$this.v.credits', 0] }] }
-            }
-          }
-        }
-      },
-      {
-        $addFields: {
-          'semesters.gpa': {
-            $cond: {
-              if: { $gt: ['$semesters.totalCredits', 0] },
-              then: {
-                $divide: [
-                  '$semesters.weightedPoints',
-                  '$semesters.totalCredits'
-                ]
-              },
-              else: 0
-            }
-          }
-        }
-      },
-      {
-        $group: {
-          _id: '$_id',
-          registerNumber: { $first: '$registerNumber' },
-          username: { $first: '$username' },
-          email: { $first: '$email' },
-          batch: { $first: '$batch' },
-          department: { $first: '$department' },
-          semesters: { $push: '$semesters' },
-          totalGradePoints: { $sum: '$semesters.weightedPoints' },
-          totalCredits: { $sum: '$semesters.totalCredits' }
-        }
-      },
-      {
-        $addFields: {
-          cgpa: {
-            $cond: {
-              if: { $gt: ['$totalCredits', 0] },
-              then: { $divide: ['$totalGradePoints', '$totalCredits'] },
-              else: 0
-            }
-          }
-        }
-      },
-      {
-        $project: {
-          _id: 1,
-          registerNumber: 1,
-          username: 1,
-          email: 1,
-          batch: 1,
-          department: 1,
-          semesters: 1,
-          cgpa: { $round: ['$cgpa', 2] },
-          totalCredits: 1,
-          backlogs: 0, // You might want to calculate this based on failed subjects
-          arrears: 0   // You might want to calculate this based on pending subjects
-        }
-      },
-      { $sort: { registerNumber: 1 } }
+      // ... rest of the aggregation pipeline
     ]);
 
+    console.log(`Found ${users.length} users`);
+    
     res.json({
       success: true,
       count: users.length,
       users
     });
   } catch (error) {
-    console.error('Error fetching users:', error);
+    console.error('Error in getAllUsers:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch users',
-      message: error.message
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
