@@ -39,17 +39,11 @@ const AdminDashboard = ({ onLogout }) => {
     try {
       console.log('Starting to load dashboard data...');
       
-      const [usersResponse, statsResponse] = await Promise.all([
-        adminAPI.getAllUsers().catch(err => {
-          console.error('Error fetching users:', err);
-          throw new Error(`Failed to load users: ${err.message}`);
-        }),
-        adminAPI.getStats().catch(err => {
-          console.error('Error fetching stats:', err);
-          // Don't fail the whole request if stats fail
-          return { data: { stats: {} } };
-        })
-      ]);
+      // In loadDashboardData function
+const [usersResponse, statsResponse] = await Promise.all([
+  adminAPI.get('/users'),  // Should match your backend route
+  adminAPI.get('/stats')   // Should match your backend route
+]);;
 
       console.log('Users response:', usersResponse);
       console.log('Stats response:', statsResponse);

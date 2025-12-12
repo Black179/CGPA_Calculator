@@ -10,11 +10,8 @@ router.post('/login', adminLogin);
 router.use(authenticateToken);
 router.use(requireAdmin);
 
-// Get all users
-router.get('/users', getAllUsers);
-
-// Get user statistics
-router.get('/stats', getUserStats);
+router.get('/users', authenticateToken, requireAdmin, adminController.getAllUsers);
+router.get('/stats', authenticateToken, requireAdmin, adminController.getStats);
 
 // Delete a user
 router.delete('/users/:userId', deleteUser);

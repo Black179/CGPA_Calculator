@@ -36,12 +36,18 @@ app.use((req, res, next) => {
     console.log('Allowing all origins in development');
   } else {
     // In production, only allow specific origins
-    const allowedOrigins = [
-      /^https?:\/\/cgpa-calculator-aroj(-[a-z0-9]+)?\.vercel\.app$/,  // Main app
-      /^https?:\/\/cgpa-calculator-backend(-[a-z0-9]+)?\.vercel\.app$/,  // Backend
-      /^https?:\/\/localhost(:[0-9]+)?$/,  // Localhost with any port
-      /^https?:\/\/127\.0\.0\.1(:[0-9]+)?$/  // 127.0.0.1 with any port
-    ];
+    const corsOptions = {
+  origin: [
+    'https://cgpa-calculator-aroj.vercel.app',
+    'http://localhost:3000'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Enable preflight for all routes
 
     // Check if the origin is allowed
     if (origin) {
